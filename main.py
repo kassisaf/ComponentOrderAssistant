@@ -2,7 +2,6 @@ import csv
 import sqlite3
 import time
 
-import requests
 import requests.utils
 from bs4 import BeautifulSoup
 
@@ -74,13 +73,19 @@ class ProductDB:
             self.cursor.execute(f"INSERT INTO products VALUES('{product.name}','{product.url}','{product.sku}',{product.price},{product.qty},{time.time()})")
             print('Added to database')
         else:
-            # TODO update price, qty, and timestamp
             id = self.get_product_rowid(product)
             self.cursor.execute(f"UPDATE products SET price={product.price}, qty={product.qty}, timestamp={time.time()} WHERE ROWID={id}")
             print('Updated price and quantity')
 
     def save(self):
         self.connection.commit()
+
+    def close(self):
+        self.connection.close()
+
+    def save_and_close(self):
+        self.save()
+        self.close()
 
 
 def get_products_from_tayda_page(url, limit=5):
@@ -121,6 +126,4 @@ if __name__ == '__main__':
         db.add_product(product)
         print()
 
-    db.save()
-
-    pass
+    db.save_and_close()

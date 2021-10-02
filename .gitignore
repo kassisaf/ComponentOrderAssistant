@@ -1,4 +1,6 @@
 .idea
 venv
+*.pyc
 products.db
 products.db-journal
+settings.py

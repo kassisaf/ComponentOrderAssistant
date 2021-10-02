@@ -1,5 +1,7 @@
 import csv
 import sqlite3
+import time
+
 import requests
 import requests.utils
 from bs4 import BeautifulSoup
@@ -18,7 +20,7 @@ tayda_urls = {
     'pots_c_type': 'https://www.taydaelectronics.com/potentiometer-variable-resistors/rotary-potentiometer/anti-log-reverse.html'
 }
 
-# Create global session with the appropriate headers to be used for all HTTP requests
+# Create global requests session with the appropriate headers to be used for all HTTP requests
 user_agent = 'OrderAssistant v0.01'
 email = 'kassisaf@gmail.com'  # TODO move this to a config file
 session = requests.Session()
@@ -39,7 +41,7 @@ class Product:
         self.qty = int(qty)
 
     def __repr__(self):
-        return f'{self.name}\n{self.url}\nSKU: {self.sku}\nPrice: {self.price}\nIn stock: {self.in_stock()}'
+        return f'{self.name}\n{self.url}\nSKU: {self.sku}\nPrice: ${self.price}\nIn stock: {self.in_stock()}'
 
     def in_stock(self):
         if self.qty < 0:
@@ -48,14 +50,46 @@ class Product:
             return self.qty > 0
 
 
-def get_products_from_tayda_page(url):
+class ProductDB:
+    def __init__(self, filename):
+        self.connection = sqlite3.connect(filename)
+        self.cursor = self.connection.cursor()
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
+                               (name TEXT,
+                                url TEXT,
+                                sku TEXT,
+                                price REAL,
+                                qty INTEGER,
+                                timestamp REAL)''')
+        print(f'Database initialized successfully ({filename}).')
+
+    def product_exists(self, product):
+        return self.cursor.execute(f"SELECT EXISTS(SELECT 1 FROM products WHERE name='{product.name}' AND sku='{product.sku}')").fetchone()[0]
+
+    def find_product_id(self, product):
+        return self.cursor.execute(f"SELECT ROWID FROM products WHERE name='{product.name}' AND sku='{product.sku}'").fetchone()
+
+    def add_product(self, product):
+        if not self.product_exists(product):
+            self.cursor.execute(f"INSERT INTO products VALUES('{product.name}','{product.url}','{product.sku}',{product.price},{product.qty},{time.time()})")
+            print('Added to database')
+        else:
+            # TODO update price, qty, and timestamp
+            print('Found in database, skipping')
+            pass
+
+    def save(self):
+        self.connection.commit()
+
+
+def get_products_from_tayda_page(url, limit=5):
     # Request the page and parse it
-    page = session.get(url)
+    page = session.get(f'{url}?product_list_limit={limit}')
     soup = BeautifulSoup(page.content, 'html.parser')
     product_rows = soup.select('#maincontent > div.columns > div.column.main > div.products.wrapper.list.products-list > ol > li > div > div')
     products = []
 
-    # Parse product names, skus, url, and note whether out of stock
+    # Parse product names, skus, url, quantity in stock, and price
     for row in product_rows:
         name_and_url = row.find('a', {'class': 'product-item-link'})
         name = name_and_url.text.strip()
@@ -78,7 +112,14 @@ def get_products_from_tayda_page(url):
 
 
 if __name__ == '__main__':
-    metal_resistors = get_products_from_tayda_page(tayda_urls['resistors_metal'] + '?product_list_limit=5')
+    db = ProductDB('products.db')
+
+    metal_resistors = get_products_from_tayda_page(tayda_urls['resistors_metal'], limit=5)
     for product in metal_resistors:
         print(product)
+        db.add_product(product)
         print()
+
+    db.save()
+
+    pass

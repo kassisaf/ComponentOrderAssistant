@@ -66,8 +66,8 @@ class ProductDB:
     def product_exists(self, product):
         return self.cursor.execute(f"SELECT EXISTS(SELECT 1 FROM products WHERE name='{product.name}' AND sku='{product.sku}')").fetchone()[0]
 
-    def find_product_id(self, product):
-        return self.cursor.execute(f"SELECT ROWID FROM products WHERE name='{product.name}' AND sku='{product.sku}'").fetchone()
+    def get_product_rowid(self, product):
+        return self.cursor.execute(f"SELECT ROWID FROM products WHERE name='{product.name}' AND sku='{product.sku}'").fetchone()[0]
 
     def add_product(self, product):
         if not self.product_exists(product):
@@ -75,8 +75,9 @@ class ProductDB:
             print('Added to database')
         else:
             # TODO update price, qty, and timestamp
-            print('Found in database, skipping')
-            pass
+            id = self.get_product_rowid(product)
+            self.cursor.execute(f"UPDATE products SET price={product.price}, qty={product.qty}, timestamp={time.time()} WHERE ROWID={id}")
+            print('Updated price and quantity')
 
     def save(self):
         self.connection.commit()

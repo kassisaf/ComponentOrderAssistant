@@ -43,3 +43,8 @@ def get_products(session, url, limit=5):
         products.append(Product(name, url, sku, price, qty))
 
     return products
+
+
+def update_all(session):
+    for category, url in urls.items():
+        print(f'cat={category}\nurl={url}\n')

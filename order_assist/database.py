@@ -6,14 +6,17 @@ class ProductDB:
     def __init__(self, filename):
         self.connection = sqlite3.connect(filename)
         self.cursor = self.connection.cursor()
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
-                               (category TEXT,
-                                name TEXT,
-                                url TEXT,
-                                sku TEXT,
-                                price REAL,
-                                qty INTEGER,
-                                timestamp REAL)''')
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS products (
+                category TEXT,
+                name TEXT,
+                sku TEXT,
+                url TEXT,
+                price REAL,
+                qty INTEGER,
+                timestamp REAL
+            )
+        ''')
         print(f'Database initialized successfully ({filename}).')
 
     def product_exists(self, product):
@@ -24,12 +27,12 @@ class ProductDB:
 
     def add_or_update(self, product, category=''):
         if not self.product_exists(product):
-            self.cursor.execute(f"INSERT INTO products VALUES('{category}','{product.name}','{product.url}','{product.sku}',{product.price},{product.qty},{now()})")
-            print('Added to database')
+            self.cursor.execute(f"INSERT INTO products VALUES('{category}','{product.name}','{product.sku}','{product.url}',{product.price},{product.qty},{now()})")
+            print(f'Added to database: {product.name}')
         else:
             id = self.get_rowid(product)
             self.cursor.execute(f"UPDATE products SET price={product.price}, qty={product.qty}, timestamp={now()} WHERE ROWID={id}")
-            print('Updated price and quantity')
+            print(f'Updated price and quantity for product: {product.name}')
 
     def save(self):
         self.connection.commit()

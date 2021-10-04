@@ -1,5 +1,7 @@
-from order_assist.product import Product
+from time import sleep
 from bs4 import BeautifulSoup
+from order_assist.product import Product
+from order_assist.database import ProductDB
 
 # Product category URLs used for scraping SKUs
 urls = {
@@ -16,7 +18,11 @@ urls = {
 }
 
 
-def get_products(session, url, limit=5):
+def get_products(session, url, limit=2):
+    # Translate limit of 0 to 'all' for Tayda API
+    if limit == 0:
+        limit = 'all'
+
     # Request the page and parse it
     page = session.get(f'{url}?product_list_limit={limit}')
     soup = BeautifulSoup(page.content, 'html.parser')
@@ -45,6 +51,16 @@ def get_products(session, url, limit=5):
     return products
 
 
-def update_all(session):
+def update_category(session, database: ProductDB, category):
+    if category in urls.keys():
+        for product in get_products(session, urls[category], limit=0):
+            database.add_or_update(product, category)
+        database.save()
+
+
+def update_all(session, database: ProductDB, delay=10):
     for category, url in urls.items():
-        print(f'cat={category}\nurl={url}\n')
+        update_category(session, database, category)
+        print(f'Waiting {delay} seconds...')
+        sleep(delay)
+    print(f'Added/updated {database.changes()} fields from {len(urls)} categories.')

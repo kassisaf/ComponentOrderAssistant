@@ -18,7 +18,7 @@ urls = {
 }
 
 
-def get_products(session, url, limit=2):
+def get_products(session, url, limit=5):
     # Translate limit of 0 to 'all' for Tayda API
     if limit == 0:
         limit = 'all'

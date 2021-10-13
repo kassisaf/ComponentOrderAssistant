@@ -18,6 +18,60 @@ urls = {
 }
 
 
+class QuickOrderCSV:
+    def __init__(self):
+        self.lines = ['sku,qty']
+
+    def import_from_file(self, filename):
+        with open(filename, 'r') as input_file:
+            for line in input_file:
+                try:
+                    sku, qty = line.split(',')
+                except ValueError:
+                    # TODO log warning that line was skipped because it didn't have exactly 2 values
+                    continue
+                try:
+                    qty = int(qty)
+                except ValueError:
+                    # TODO log warning that line was skipped because qty isn't a number
+                    continue
+                self.add_item(sku, qty)
+
+    def add_item(self, sku, qty):
+        sku = sku.strip()
+        # If the SKU is already on our list, increase the quantity
+        for i, line in enumerate(self.lines):
+            current_sku, current_qty = line.split(',')
+            new_qty = current_qty + qty
+            self.lines[i] = f'{current_sku, new_qty}'
+            print(f'Found SKU {sku}, adding {qty}. New qty is {new_qty}.')
+            return
+        # If the SKU is not in our list, append it
+        self.lines.append(f'{sku.strip()},{qty}')
+
+    def remove_item(self, sku, qty):
+        for i, line in enumerate(self.lines):
+            current_sku, current_qty = line.split(',')
+            if current_sku == sku:
+                if qty >= current_qty:
+                    self.lines.remove(line)
+                    print(f'Removed all of {sku} (tried to remove {qty} but only had {current_qty})')
+                else:
+                    new_qty = current_qty - qty
+                    self.lines[i] = f'{sku},{new_qty}'
+                    print(f'Removed {qty} of {sku} (new qty is {new_qty})')
+                return
+            print(f'{sku} not found, nothing to remove')
+
+    def save_to_file(self, filename):
+        try:
+            with open(filename, 'w') as output_file:
+                for line in self.lines:
+                    output_file.writelines(self.lines)
+        except OSError:
+            print(f'Unable to save. Is {filename} a valid filename?')
+
+
 def get_products(session, url, limit=5):
     # Translate limit of 0 to 'all' for Tayda API
     if limit == 0:

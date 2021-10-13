@@ -6,6 +6,10 @@ class ProductDB:
     def __init__(self, filename):
         self.connection = sqlite3.connect(filename)
         self.cursor = self.connection.cursor()
+        self.create_product_table()
+        print(f'Database initialized successfully ({filename}).')
+
+    def create_product_table(self):
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS products (
                 category TEXT,
@@ -17,7 +21,6 @@ class ProductDB:
                 timestamp REAL
             )
         ''')
-        print(f'Database initialized successfully ({filename}).')
 
     def product_exists(self, product):
         return self.cursor.execute(f"SELECT EXISTS(SELECT 1 FROM products WHERE name='{product.name}' AND sku='{product.sku}')").fetchone()[0]
